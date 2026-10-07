@@ -223,6 +223,14 @@ Le corps des réponses 500 ne contient pas de champ `version`. Environ un quart 
 
 ![Pause à 25 % et réponses HTTP 500 de la 2.1.0](docs/journal/33-observe-2.1.0-http500.png)
 
+L'image porte la panne. `1.0.0`, `1.1.0` et `2.0.0` ont `FAILURE_RATE=0` et `LATENCY_MS=0`. Seule `2.1.0` a `FAILURE_RATE=0.3` et `LATENCY_MS=300`.
+
+![Variables des quatre images : seule la 2.1.0 injecte des erreurs](docs/journal/36-failure-rate-images.png)
+
+Dans `app/main.py`, le middleware `inject_faults` laisse passer `/health`. Sur les autres routes, il attend 300 ms, puis renvoie un HTTP 500 (`{"detail": "Erreur interne"}`) pour environ 30 % des requêtes, tirées au hasard. Ce corps n'a pas de champ `version`, d'où `version=aucune` dans `observe.sh`. Le readiness probe appelle `/health`, donc le pod canary reste `Ready` pendant que les utilisateurs prennent les 500.
+
+![Middleware inject_faults : /health exclu, les autres routes peuvent répondre 500](docs/journal/37-middleware-http-500.png)
+
 `kubectl argo rollouts abort taskflow -n taskflow` interrompt le palier. Argo CD reste **Synced** sur `07ffacf` (Git demande encore `2.1.0`) et la santé passe à **Degraded**. Le pod canary `df976ccb5-bfxlp` est encore là, à côté de trois pods `2.0.0`.
 
 ![Degraded juste après l'abort, le pod 2.1.0 est encore présent](docs/journal/34-degraded-abort.png)
