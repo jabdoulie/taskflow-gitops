@@ -38,4 +38,5 @@ Il peut être relancé sans risque.
 ## Équipe
 
 <!-- Noms du binôme -->
-- À compléter
+- Jallow Abdoulie
+- Hannan Hassif
