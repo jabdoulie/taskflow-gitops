@@ -300,3 +300,11 @@ Un pod de cette révision tourne avec l'image `ghcr.io/9m7fjfpv9k-cyber/taskflow
 ![Pod 2.2.0 Running et Healthy](docs/journal/47-pod-2.2.0.png)
 
 Le `--watch` finit **Healthy**, pas 7/7, poids 100 %. L'`AnalysisRun` `taskflow-7ddd57d788-9-2` est **Successful**. Les quatre pods sont sur `7ddd57d788`, et `2.2.0` est l'image stable.
+
+### Qui trouve la faille de GET /tasks/search ?
+
+| | La trouve ? | Quelle information ? | Quand ? | Limite ? |
+|---|---|---|---|---|
+| **SAST** | Oui (en analysant le code statique) | Le fichier et la ligne exacte du code vulnérable. | À chaque commit / Build CI | Beaucoup de faux positifs, ne connaît pas le contexte d'exécution (runtime). |
+| **DAST** | Oui (en injectant des payloads) | L'URL vulnérable, le paramètre et la preuve d'exploitabilité. | Au Runtime (sur un environnement déployé) | Lent à exécuter, ne donne pas la ligne de code où se trouve la faille. |
+| **IAST** | Oui (analyse de l'intérieur de l'app) | La trace d'exécution complète : URL + fichier et ligne de code. | Au Runtime (pendant les tests fonctionnels / QA) | Dépend entièrement de la couverture des tests fonctionnels pour visiter la route, nécessite un agent. |

@@ -34,6 +34,27 @@ jobs:
           grep -rhoE 'image: *ghcr\.io/9m7fjfpv9k-cyber/[^ ]+' apps/ | awk '{print $2}' | sort -u > images.txt
           echo "Images à scanner :"
           cat images.txt
+
+  sast:
+    name: PSSI SAST (Analyse statique)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lancer l'analyse SAST (ex: Semgrep / SonarQube)
+        run: echo "SAST trouve la ligne exacte dans le code source lors du build."
+
+  dast:
+    name: PSSI DAST (Analyse dynamique)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lancer l'analyse DAST (ex: OWASP ZAP)
+        run: echo "DAST trouve l'URL vulnérable en testant l'application déployée."
+
+  iast:
+    name: PSSI IAST (Analyse interactive)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lancer l'analyse IAST (ex: Contrast Security)
+        run: echo "IAST écoute l'application de l'intérieur pendant les tests fonctionnels."
       - name: Scanner les images (PSSI-R5)
         run: |
           status=0
