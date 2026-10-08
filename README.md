@@ -67,6 +67,8 @@ Cluster `kind-cicd`. Argo CD surveille `https://github.com/jabdoulie/taskflow-gi
 | PR #8, stratégie canary (`5503144`) | jabdoulie | 123Hassif | Rollout canary, image tenue en `1.1.0`, Service preview retiré |
 | PR #9, image `2.0.0` (`e9baef2`) | jabdoulie | 123Hassif | Canary jusqu'à 100 %, prod en `2.0.0` |
 | PR #10, image `2.1.0` (`07ffacf`) | jabdoulie | 123Hassif | 25 % de `2.1.0`, des HTTP 500, puis abort |
+| PR #19, image `2.1.0` avec analyse (`6853b55`) | jabdoulie | 123Hassif | L'analyse k6 échoue, abort automatique, stable reste en `2.0.0` |
+| PR #20, image `2.2.0` (`ed69cd1`) | jabdoulie | 123Hassif | Analyse réussie, production en `2.2.0` |
 
 **Pourquoi `git revert`.** Le bouton Revert ajoute un commit qui annule la PR #2, puis ce commit passe par une PR. L'historique de `main` reste en place, le ruleset n'est pas contourné, et Argo CD déploie ce nouveau commit (`7028150`) : l'image redevient `1.0.0`.
 
@@ -252,3 +254,49 @@ Les deux stratégies ont livré une version saine (`1.1.0`, puis `2.0.0`). La `2
 **Coût.** Le blue-green a tenu 8 pods (Current 8, deux ReplicaSets de 4) pendant toute la pause, plus un second Service. Chaque pod demande 50m de CPU et 64 Mi : le chevauchement double ces demandes, et `scaleDownDelaySeconds: 30` garde les anciens pods encore trente secondes après le promote. Le canary est resté à 4 pods à chaque palier (1, puis 2, puis 3 pods neufs). Il n'ajoute pas de Service.
 
 Pour TaskFlow, quatre replicas et pas de maillage, le canary est le bon choix. Une image qui répond 500 ne touche qu'une part des requêtes, et l'`abort` coupe cette part tout de suite. Le blue-green protège la production jusqu'au promote, au prix d'un second jeu complet de pods et d'un basculement total le jour où l'on promeut. Il convient quand la nouvelle version doit être essayée sur le preview sans aucune requête de production, et quand doubler les pods pendant la pause est acceptable.
+
+### 9. Analyse automatique : `2.0.0`, `2.1.0`, puis `2.2.0`
+
+Le détail de l'incident est dans [docs/postmortem-2.1.0.md](docs/postmortem-2.1.0.md).
+
+Avant le canary, `./scripts/observe.sh taskflow` répond 40/40 `version=2.0.0` en HTTP 200.
+
+![Production en 2.0.0, 40 réponses HTTP 200](docs/journal/38-observe-2.0.0.png)
+
+`./scripts/charge.sh http://taskflow` lance le même scénario k6 que l'analyse : 30 secondes, 5 utilisateurs virtuels, sur le Service de production.
+
+![Test de charge k6 lancé sur http://taskflow](docs/journal/39-charge-k6-2.0.0.png)
+
+Après la pull request d'analyse, Argo CD montre la ConfigMap `k6-robustesse`, les Services `taskflow` et `taskflow-canary`, l'`AnalysisTemplate` `robustesse-k6` et le Rollout. Les pods actifs sont ceux du ReplicaSet `c6cf57bd6`.
+
+![Argo CD : Rollout, analyse k6 et Service canary](docs/journal/40-argo-analyse-auto.png)
+
+Les CRD `rollouts.argoproj.io`, `analysistemplates.argoproj.io` et `analysisruns.argoproj.io` sont là. `kubectl -n taskflow get deploy` répond `No resources found`.
+
+![CRD Argo, Rollout, AnalysisTemplate, ConfigMap, Services, aucun Deployment](docs/journal/41-crd-pas-de-deployment.png)
+
+La première promotion en `2.1.0` (révision 6) ne s'avorte pas. L'`AnalysisRun` `taskflow-df976ccb5-6-1` et son Job k6 passent au vert, et les quatre pods `df976ccb5` prennent le trafic. k6 a mesuré la `2.0.0` : le sélecteur de `taskflow-canary` a basculé vers `df976ccb5` à la même seconde que le démarrage du Job, et les connexions sont restées sur l'ancien ReplicaSet.
+
+![AnalysisRun 6-1 réussi, pods 2.1.0 déjà en place](docs/journal/42-analysisrun-succes-apparent.png)
+
+Une pause de 15 s est ajoutée avant l'analyse. Au passage suivant en `2.1.0` (révision 8, PR #19, `6853b55`), la métrique `test-de-charge-k6` échoue. Argo CD est **Degraded** et **Synced**. L'`AnalysisRun` `df976ccb5-8-2` est rouge. Le retour vers `2.0.0` (révision 7) a d'abord un échec (`c6cf57bd6-7-1`), puis un succès (`c6cf57bd6-7-2`).
+
+![Degraded sur 6853b55 : analyses en échec et en succès](docs/journal/43-degraded-analyses.png)
+
+Le `--watch` confirme l'abandon automatique. Message : `Rollout aborted update to revision 8`, métrique `test-de-charge-k6` en échec, `failureLimit` à 0. Le poids retombe à 0. L'image stable est `2.0.0` (`c6cf57bd6`, 4 pods). Le ReplicaSet canary `df976ccb5` est **ScaledDown**.
+
+![Abort automatique de la révision 8, stable en 2.0.0](docs/journal/44-abort-auto-revision-8.png)
+
+PR #20, `feat/image-2.1.0` vers `main`, commit `17554f2` : l'image passe en `2.2.0`.
+
+![PR #20 ouverte, image 2.2.0](docs/journal/45-pr20-image-2.2.0.png)
+
+Après le merge (`ed69cd1`), Argo CD est **Suspended** et **Synced**. Le ReplicaSet `7ddd57d788` (rév. 9) démarre. L'`AnalysisRun` `7ddd57d788-9-2` lance son Job k6. Les pods `2.0.0` sont encore là.
+
+![Canary 2.2.0, analyse k6 en cours](docs/journal/46-canary-2.2.0.png)
+
+Un pod de cette révision tourne avec l'image `ghcr.io/9m7fjfpv9k-cyber/taskflow:2.2.0`, **Healthy**.
+
+![Pod 2.2.0 Running et Healthy](docs/journal/47-pod-2.2.0.png)
+
+Le `--watch` finit **Healthy**, pas 7/7, poids 100 %. L'`AnalysisRun` `taskflow-7ddd57d788-9-2` est **Successful**. Les quatre pods sont sur `7ddd57d788`, et `2.2.0` est l'image stable.
