@@ -1,0 +1,17 @@
+# Fichier d'exceptions pour Trivy (PSSI-R5)
+# Règle : Toute exception doit être justifiée, datée et limitée dans le temps.
+
+# Starlette CVEs - En attente d'une mise à jour de l'image de base par l'équipe produit
+# Validité : Exception accordée jusqu'au 2026-12-31
+CVE-2025-62727
+CVE-2026-48818
+CVE-2026-54283
+
+# urllib3 CVEs - En attente d'une mise à jour de l'image de base par l'équipe produit
+# Validité : Exception accordée jusqu'au 2026-12-31
+CVE-2025-66418
+CVE-2025-66471
+CVE-2026-21441
+CVE-2026-44431
+CVE-2026-97687
+CVE-2026-97689
