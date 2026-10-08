@@ -1,0 +1,7 @@
+# Fichier d'exceptions pour Trivy (PSSI-R5)
+# Règle : Toute exception doit être justifiée, datée et limitée dans le temps.
+
+# Exemple :
+# CVE-2023-XXXXX
+# Justification : Faux positif / correctif prévu dans la prochaine release de l'image de base.
+# Validité : Exception accordée jusqu'au 2026-12-31.
