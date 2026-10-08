@@ -300,3 +300,26 @@ Un pod de cette révision tourne avec l'image `ghcr.io/9m7fjfpv9k-cyber/taskflow
 ![Pod 2.2.0 Running et Healthy](docs/journal/47-pod-2.2.0.png)
 
 Le `--watch` finit **Healthy**, pas 7/7, poids 100 %. L'`AnalysisRun` `taskflow-7ddd57d788-9-2` est **Successful**. Les quatre pods sont sur `7ddd57d788`, et `2.2.0` est l'image stable.
+
+### Livrable : La mini-PSSI en quality gates
+
+Voici le tableau récapitulatif des règles de sécurité mises en place dans la pipeline d'intégration continue :
+
+| Règle | Contrôle | Outil | Preuve |
+| --- | --- | --- | --- |
+| **PSSI-R1** | Toute image a un tag explicite, jamais \latest\ | **conftest** | Blocage CI lors de l'utilisation de ginx:latest\ |
+| **PSSI-R2** | Les images viennent uniquement du registre autorisé | **conftest** | Blocage CI lors de l'utilisation de ginx:latest\ |
+| **PSSI-R3** | Chaque conteneur a une limite de mémoire (esources.limits.memory\) | **conftest** | Règle ajoutée dans \kubernetes.rego\ et appliquée sur ollout.yaml\ |
+| **PSSI-R4** | Les pods ne tournent jamais en root (unAsNonRoot: true\) | **conftest** | Ajout du \securityContext\ au niveau du pod dans ollout.yaml\ |
+| **PSSI-R5** | Aucune vulnérabilité HIGH ou CRITICAL corrigeable | **Trivy** | Fichier \.trivyignore\ créé avec les exceptions datées pour l'image 2.2.0 |
+
+#### Preuves de blocage (PR non conforme)
+
+1. **Blocage Conftest (Règles R1 & R2)** : Lors de l'introduction de l'image ginx:latest\, la pipeline a bloqué le déploiement car l'image provenait d'un registre non autorisé et utilisait le tag \latest\.
+   *(Insérez ici la capture de l'erreur Conftest)*
+
+2. **Blocage Trivy (Règle R5)** : L'image \	askflow:2.2.0\ comportait des vulnérabilités connues (Starlette, urllib3). La pipeline a légitimement bloqué la PR en attendant une action.
+   *(Insérez ici la capture de l'erreur Trivy et de la PR bloquée)*
+
+3. **Résolution finale** : Après restauration de l'image correcte et ajout des exceptions justifiées dans le fichier \.trivyignore\, la pipeline complète passe au vert et la PR est débloquée.
+   *(Insérez ici la capture de la PR avec tous les checks approuvés)*
