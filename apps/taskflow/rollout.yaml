@@ -45,6 +45,8 @@ spec:
       canaryService: taskflow-canary
       steps:
         - setWeight: 25
+        - pause:
+            duration: 15s
         - analysis:
             templates:
               - templateName: robustesse-k6
