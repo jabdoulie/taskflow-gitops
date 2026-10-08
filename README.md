@@ -307,19 +307,24 @@ Voici le tableau récapitulatif des règles de sécurité mises en place dans la
 
 | Règle | Contrôle | Outil | Preuve |
 | --- | --- | --- | --- |
-| **PSSI-R1** | Toute image a un tag explicite, jamais \latest\ | **conftest** | Blocage CI lors de l'utilisation de ginx:latest\ |
-| **PSSI-R2** | Les images viennent uniquement du registre autorisé | **conftest** | Blocage CI lors de l'utilisation de ginx:latest\ |
-| **PSSI-R3** | Chaque conteneur a une limite de mémoire (esources.limits.memory\) | **conftest** | Règle ajoutée dans \kubernetes.rego\ et appliquée sur ollout.yaml\ |
-| **PSSI-R4** | Les pods ne tournent jamais en root (unAsNonRoot: true\) | **conftest** | Ajout du \securityContext\ au niveau du pod dans ollout.yaml\ |
-| **PSSI-R5** | Aucune vulnérabilité HIGH ou CRITICAL corrigeable | **Trivy** | Fichier \.trivyignore\ créé avec les exceptions datées pour l'image 2.2.0 |
+| **PSSI-R1** | Toute image a un tag explicite, jamais `latest` | **conftest** | Blocage CI lors de l'utilisation de `nginx:latest` |
+| **PSSI-R2** | Les images viennent uniquement du registre autorisé | **conftest** | Blocage CI lors de l'utilisation de `nginx:latest` |
+| **PSSI-R3** | Chaque conteneur a une limite de mémoire (`resources.limits.memory`) | **conftest** | Règle ajoutée dans `kubernetes.rego` et appliquée sur `rollout.yaml` |
+| **PSSI-R4** | Les pods ne tournent jamais en root (`runAsNonRoot: true`) | **conftest** | Ajout du `securityContext` au niveau du pod dans `rollout.yaml` |
+| **PSSI-R5** | Aucune vulnérabilité HIGH ou CRITICAL corrigeable | **Trivy** | Fichier `.trivyignore` créé avec les exceptions datées pour l'image 2.2.0 |
 
 #### Preuves de blocage (PR non conforme)
 
-1. **Blocage Conftest (Règles R1 & R2)** : Lors de l'introduction de l'image ginx:latest\, la pipeline a bloqué le déploiement car l'image provenait d'un registre non autorisé et utilisait le tag \latest\.
-   *(Insérez ici la capture de l'erreur Conftest)*
+1. **Blocage Conftest (Règles R1 & R2)** : Lors de l'introduction de l'image `nginx:latest`, la pipeline a bloqué le déploiement car l'image provenait d'un registre non autorisé et utilisait le tag `latest`.
 
-2. **Blocage Trivy (Règle R5)** : L'image \	askflow:2.2.0\ comportait des vulnérabilités connues (Starlette, urllib3). La pipeline a légitimement bloqué la PR en attendant une action.
-   *(Insérez ici la capture de l'erreur Trivy et de la PR bloquée)*
+![Blocage Conftest sur l'image nginx:latest](docs/journal/conftest-fail.png)
 
-3. **Résolution finale** : Après restauration de l'image correcte et ajout des exceptions justifiées dans le fichier \.trivyignore\, la pipeline complète passe au vert et la PR est débloquée.
-   *(Insérez ici la capture de la PR avec tous les checks approuvés)*
+2. **Blocage Trivy (Règle R5)** : L'image `taskflow:2.2.0` comportait des vulnérabilités connues (Starlette, urllib3). La pipeline a légitimement bloqué la PR en attendant une action.
+
+![Blocage Trivy sur l'image taskflow:2.2.0](docs/journal/trivy-fail.png)
+
+![PR bloquée par l'échec des statuts de sécurité](docs/journal/pr-blocked.png)
+
+3. **Résolution finale** : Après restauration de l'image correcte et ajout des exceptions justifiées dans le fichier `.trivyignore`, la pipeline complète passe au vert et la PR est débloquée.
+
+![PR approuvée et débloquée après la résolution des failles](docs/journal/pr-merged.png)
