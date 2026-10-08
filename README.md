@@ -316,10 +316,15 @@ Voici le tableau récapitulatif des règles de sécurité mises en place dans la
 #### Preuves de blocage (PR non conforme)
 
 1. **Blocage Conftest (Règles R1 & R2)** : Lors de l'introduction de l'image ginx:latest\, la pipeline a bloqué le déploiement car l'image provenait d'un registre non autorisé et utilisait le tag \latest\.
-   *(Insérez ici la capture de l'erreur Conftest)*
+
+![Conftest bloque nginx:latest : PSSI-R1 (tag latest) et PSSI-R2 (registre non autorisé)](docs/pssi/01-conftest-r1-r2.png)
 
 2. **Blocage Trivy (Règle R5)** : L'image \	askflow:2.2.0\ comportait des vulnérabilités connues (Starlette, urllib3). La pipeline a légitimement bloqué la PR en attendant une action.
-   *(Insérez ici la capture de l'erreur Trivy et de la PR bloquée)*
+
+![Trivy bloque le scan de taskflow:2.2.0 (PSSI-R5)](docs/pssi/02-trivy-r5.png)
+
+![PR bloquée : le check Trivy est en échec, le check conftest est au vert](docs/pssi/03-pr-bloquee-trivy.png)
 
 3. **Résolution finale** : Après restauration de l'image correcte et ajout des exceptions justifiées dans le fichier \.trivyignore\, la pipeline complète passe au vert et la PR est débloquée.
-   *(Insérez ici la capture de la PR avec tous les checks approuvés)*
+
+![PR débloquée : les deux checks PSSI sont au vert](docs/pssi/04-pr-checks-verts.png)
